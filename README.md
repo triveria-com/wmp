@@ -248,5 +248,5 @@ After validating the JWT signature, the entity must verify the `proof` claim in 
 ## Key rotation
 TBD
 
-## Wbeoscket ping & pong
+## Websocket ping & pong
 TBD
