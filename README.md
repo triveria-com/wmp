@@ -1,20 +1,23 @@
 # Wallet Messaging Protocol
 ## Introduction
-Wallet Messaging Protocol (WMP) is a websocket-based communication protocol which provides secure trusted channels where two wallets can exchange data such as OpenID4VCI credential offers or credential verification requests.  
+Wallet Messaging Protocol (WMP) is a [websocket][websocket]-based communication protocol which provides secure trusted channels where two wallets can exchange data such as [OpenID4VCI][oidc4vci] credential offers or credential verification requests.  
 It does not aim to replace these specifications, only to provide an additional layer through which wallets can exchange information.
 
 ## Architecture
-### Basic concepts
+### Terms
 
-- Entity: Actor in WMP
-- Entity Type: Entity can be either a `server` -- websocket server or `client` -- websocket client
-- Wallet Type: string with value `issuer` -- entity issuing verifiable credentials, `verifier` -- entity verifying verifiable credentials, `holder` -- entity holding verifiable credentials
-- Invitation: Public document describing how a client entity may connect to a server entity through WMP
+- Entity: Wallet communicating using WMP
+- Server Entity: Entity providing WMP [websocket][websocket] connection (websocket server)
+- Client Entity: Entity connecting to a WMP [websocket][websocket] entity (websocket client)
 - WMP Channel: a websocket connection between two entities
-- Key Identifier: Object identifying a public key, e.g. DID, X509 Certificate etc.
+- Wallet Type: string with value `issuer` - entity issuing verifiable credentials, `verifier` - entity verifying verifiable credentials, `holder` - entity holding verifiable credentials
+- Invitation: [JWT][jwt] object issued by the server providing information about a WMP connection
+- Key Identifier: Object identifying a public key, e.g. [DID][did], [X509 Certificate][x509] etc.
 - ID Token: Document describing the entity, it's wallet keys and their identifiers
 
-New connections between entities are established using a so-called invitation flow:
+**Invitation flow:**  
+WMP connection between two previously unknown entities are established using this flow.
+The flow is described by the following diagram:
 ```mermaid
 sequenceDiagram
 Server ->> Server: Publishes invitation JWT<br/>With code_challenge
@@ -33,7 +36,9 @@ Client -->> Client: Verifies server ID Token
 Server -->> Server: Verifies client ID Token
 Note over Server,Client: Trusted connection channel has been<br/> established
 ```
-Connections between trusted entities are established by the following flow:
+**Known entity flow:**  
+Connections between two already known entities are established using this flow.
+It is described by the following diagram:
 ```mermaid
 sequenceDiagram
 participant Server
@@ -45,8 +50,8 @@ Client ->> Server: Sends verification response
 Server -->> Server: Verifies verification <br/>response
 Note over Server,Client: Trusted connection channel has been<br/> established
 ```
-## Message structure
-All messages in WMP are Json Web Tokens (JWTs) that are signed by the corresponding entity.
+## WMP Message structure
+All messages in WMP are [Json Web Tokens (JWTs)][jwt] that are signed by the corresponding entity.
 The following JWT header claims shall be present in every message:
 - `typ`: Specifies the type of WMP message, e.g. `jwt+wmp/verification_request`
 - `jwk`: Public key that is used to verify the JWT signature validity. For now, other methods of specifying the key (such as using `kid` or `x5c` claim) are not supported
@@ -63,8 +68,8 @@ A WMP invitation has the following JWT header claims:
 
 And the following JWT Payload claims:
 - `channel_url`: A websocket url of the WMP connection
-- `code_challenge`: a PKCE code challenge that will be used by the client to validate the invitation
-- `code_challenge`: a PKCE code challenge method. Only the value of `S256` is supported.
+- `code_challenge`: a [PKCE code challenge][pkce] that will be used by the client to validate the invitation
+- `code_challenge`: a [PKCE code challenge][pkce] method. Only the value of `S256` is supported.
 - `exp`: The invitation expiration. It is recommended to be no longer than 24 hours.
 
 Here is an example of a WMP invitation:
@@ -95,7 +100,8 @@ Here is the decoded token payload:
   "iss": "ws://localhost:1234/api/v1/wmp/4e0583fe-5ae0-4623-8328-37a6143b36dd"
 }
 ```
-The invitation shall be published by a Server to an endpoint where it can be retrieved by a Client with an HTTP GET request. This URL can be delivered to the client by other channels such as QR code, email, [Pigeons](https://www.rfc-editor.org/rfc/rfc1149), etc.
+The invitation shall be published by a WMP Server Entity to an endpoint where it can be retrieved by a Client with an HTTP GET request.
+This URL can be delivered to the client by other channels such as QR code, email, processes described by [RFC-1149][pigeons], etc.
 
 ## WMP Messages
 In addition to the specified message types, more can be added to extend the functionality of WMP.
@@ -103,7 +109,7 @@ In addition to the specified message types, more can be added to extend the func
 Verification request is sent by the WMP Server Entity to the Client Entity. It's header `typ` claim shall be set to `jwt+wmp/verification_request`.
 The payload shall contain the following claims:
 - `nonce`: A random string that the client has to include in a verification response. A source of randomness with high entropy is recommended.
-- `code_verifier`: Code verifier to the PKCE Code challenge present in the invitation. Present only during the invitation flow.
+- `code_verifier`: Code verifier to the [PKCE Code challenge][pkce] present in the invitation. Present only during the invitation flow.
 
 Here is an example of a WMP Verification Request:
 ```
@@ -165,19 +171,26 @@ Here is the decoded token payload:
 ```
 
 ### ID Token
-ID token is sent by both client and server entities. It's header `typ` claim shall be set to `jwt+wmp/id_token`.
+ID token is sent by both client and server entities.
+It's header `typ` claim shall be set to `jwt+wmp/id_token`.
 The payload shall contain the following claims:
 - `entity_types`: Array of wallet types
 - `identifiers`: Array of wallet key identifiers
-- `issuer_url`: OIDC Issuer endpoint of the entity wallet. Present only if `entity_types` contains `issuer`
-- `authorization_url`: OIDC Authorization endpoint of the entity wallet. Present only if `entity_types` contains `issuer` or `verifier`
-- `name`: OPTIONAL A human readable identifier of the entity
+- `issuer_url`: OIDC Issuer endpoint of the entity wallet. 
+Present only if `entity_types` contains `issuer`
+- `authorization_url`: OIDC Authorization endpoint of the entity wallet. 
+Present only if `entity_types` contains `issuer` or `verifier`
+- `name`: OPTIONAL A human-readable identifier of the entity
 
 **Wallet key identifier:**
 A wallet key identifier object is a JSON object containing the following claims:
-- `type`: Type of the wallet key identifier. Currently supported types are `did` for DIDs and `x509` for X509 certificate chains
-- `identifier`: String array. When `type` is set to `x509`, it's elements are base64 encoded X509 certificate chain elements with its leaf being the first element. When `type` is set to `did`, the array has only one element -- the DID
-- `proof`: A sample JWT token signed with a private key corresponding to the public key that the key identifier points to. The JWT shall have it's header `typ` claim set to `jwt+wmp/entity-id-proof`.
+- `type`: Type of the wallet key identifier.
+Currently supported types are `did` for DIDs and `x509` for X509 certificate chains.
+- `identifier`: String array.
+When `type` is set to `x509`, it's elements are base64 encoded X509 certificate chain elements with its leaf being the first element.
+When `type` is set to `did`, the array has only one element - the DID.
+- `proof`: A sample JWT token signed with a private key corresponding to the public key that the key identifier points to.
+The JWT shall have its header `typ` claim set to `jwt+wmp/entity-id-proof`.
 
 Here is an example ID Token:
 ```
@@ -222,25 +235,30 @@ Here is the decoded token payload:
 
 
 ### Credential offer
-Credential offer message is sent from an entity with `issuer` wallet type to an entity with `holder` wallet type. It's header `typ` claim shall be set to `jwt+wmp/credential_offer`.
+Credential offer message is sent from an entity with `issuer` wallet type to an entity with `holder` wallet type.
+It's header `typ` claim shall be set to `jwt+wmp/credential_offer`.
 The payload shall contain the following claims:
-- `offer_url`: An OIDC4VCI Credential Offer URL
+- `offer_url`: An [OIDC4VCI][oidc4vci] Credential Offer URL
 
-Upon receiving a credential offer message, the recipient shall process it using flows specified in OIDC4VCI.
+Upon receiving a credential offer message, the recipient shall process it using flows specified in [OIDC4VCI][oidc4vci].
 
 ### Credential verification request
-Credential verification request is sent from an entity with `verifier` wallet type to an entity with `holder` wallet type. It's header `typ` claim shall be set to `jwt+wmp/credential_verification_request`.
+Credential verification request is sent from an entity with `verifier` wallet type to an entity with `holder` wallet type.
+It's header `typ` claim shall be set to `jwt+wmp/credential_verification_request`.
 The payload shall contain the following claims:
-- `verification_request_url`: An OIDC4VP Credential Verification Request URL
+- `verification_request_url`: An [OIDC4VP][oidc4vp] Credential Verification Request URL
 
 ## Verifying WMP messages
-All WMP messages are JWT tokens and before any other verification, their signature should be verified. Both `client` and `server` antities must also verify if the message signature is using the same key as the key the entity used during the invitation process.
+All WMP messages are JWT tokens and before any other verification, their signature must be verified.
+Both `client` and `server` entities must also verify if the key used to sign the message is same as the key the entity used during the invitation process.
 ### Verifying invitations
-Before establishing any websocket connection with the server, the client must verify the validity of the JWT signature. If the invitation endpoint is protected by a hashlink, it must also verify whether the hashlink matches the HTTP response body.
+Before establishing any websocket connection with the server, the client must verify the validity of the JWT signature.
+If the invitation endpoint is protected by a [hashlink][hl], it must also verify whether the hashlink matches the HTTP response body.
 After establishing a websocket connection, the client must validate the `code_challenge` with the `code_verifier` provided in the client Verification Request sent by the server.
 
 ### Verifying client verification response
-After validating the JWT signature, the server must verify the values of the sent `nonce` claim. If the claim is not present, or it's value does not match the one sent by the server, the server must not continue communicating through this channel.
+After validating the JWT signature, the server must verify the values of the sent `nonce` claim.
+If the claim is not present, or it's value does not match the one sent by the server, the server must not continue communicating through this channel.
 
 ### Verifying ID Token
 After validating the JWT signature, the entity must verify the `proof` claim in every element of the `identifiers` claims.
@@ -250,3 +268,24 @@ TBD
 
 ## Websocket ping & pong
 TBD
+
+## References
+\[1\]: [OPENID4VCI Draft 15][oidc4vci]  
+\[2\]: [Json Web Tokens (JWTs)][jwt]  
+\[3\]: [Decentralized Identifiers (DIDs)][did]  
+\[4\]: [X509 Certificates][x509]  
+\[5\]: [The Websocket Protocol][websocket]  
+\[6\]: [PKCE Code Challenge][pkce]  
+\[7\]: [RFC-1149][pigeons]  
+\[8\]: [OPENID4VP][oidc4vp]  
+\[9\]: [Hashlinks][hl]
+
+[oidc4vci]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html "OPENID4VCI"  
+[oidc4vp]: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html "OPENID4VP"
+[jwt]: https://datatracker.ietf.org/doc/html/rfc7519 "Json Web Tokens"
+[did]: https://www.w3.org/TR/did-1.0/ "Decentralized Identifiers (DIDs)"
+[x509]: https://datatracker.ietf.org/doc/html/rfc5280 "X509 Certificates"
+[websocket]: https://datatracker.ietf.org/doc/html/rfc6455 "The Websocket Protocol"
+[pkce]: https://datatracker.ietf.org/doc/html/rfc7636 "Proof Key for Code Exchange by OAuth Public Clients"
+[pigeons]: https://datatracker.ietf.org/doc/html/rfc1149 "A Standard for the Transmission of IP Datagrams on Avian Carriers"
+[hl]: https://w3c-ccg.github.io/hashlink/ "Hashlinks"
