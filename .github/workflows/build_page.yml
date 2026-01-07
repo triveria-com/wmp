@@ -10,15 +10,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Install TeX Live
-        uses: zauguin/install-texlive@v4
+      - name: TeX compilation
+        uses: xu-cheng/texlive-action@v3
         with:
-          packages: tl-basic make4ht
-      - name: Use TeX Live
-        run: |
-          make dev-install
-          make figures
-          make html
+          run: |
+            make dev-install
+            make figures
+            make html
       - name: Upload static files as artifact
         id: deployment
         uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
