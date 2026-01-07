@@ -47,4 +47,5 @@ clean:
 	      $(FIGDIR)/*.pdf $(FIGDIR)/*-*.png
 
 dev-install:
+	mkdir -p $(TOOLSDIR)
 	cd $(TOOLSDIR) && wget -O plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2025.10/plantuml-1.2025.10.jar
