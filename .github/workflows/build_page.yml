@@ -13,7 +13,7 @@ jobs:
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: |
-            texlive-latex-base texlive-latex-extra texlive-fonts-recommended texlive-lang-english texlive-latex-recommended texlive-pictures openjdk-21-jdk
+            texlive-latex-base texlive-latex-extra texlive-fonts-recommended texlive-lang-english texlive-latex-recommended texlive-pictures texlive-extra-utils openjdk-21-jdk
           version: 1.0
       - name: Install dependencies
         run: |
