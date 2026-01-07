@@ -1,4 +1,5 @@
 build
-html
-.png
-.svg
+tools
+.idea
+*.png
+*.svg

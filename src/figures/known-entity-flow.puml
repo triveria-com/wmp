@@ -1,0 +1,10 @@
+@startuml
+participant Server
+participant Client
+Client ->> Server: Connects to WMP channel
+activate Server
+Server ->> Client: Sends verification request
+Client ->> Server: Sends verification response
+Server -->> Server: Verifies verification response
+Note over Server,Client: Trusted connection channel has been established
+@enduml

@@ -1,0 +1,17 @@
+@startuml
+    Server ->> Server: Publishes invitation JWT With code_challenge
+    Client -->> Server: GET: invitation endpoint
+    Client ->> Server: Connects to WMP channel
+    activate Server
+    Server ->> Client: Verification request With code_verifier
+    Client -->> Client: Verifies code_challenge
+    Client ->> Server: Sends verification response
+    Server -->> Server: Verifies verification response
+    Server ->> Client: Sends ID Token
+    Client ->> Server: Sends ID Token
+
+    Client -->> Client: Verifies server ID Token
+
+    Server -->> Server: Verifies client ID Token
+    Note over Server,Client: Trusted connection channel has been established
+@enduml
