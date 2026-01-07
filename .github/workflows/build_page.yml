@@ -10,14 +10,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: TeX compilation
-        uses: xu-cheng/texlive-action@v3
-        with:
-          os: debian
-          run: |
-            make dev-install
-            make figures
-            make html
+      - name: Install dependencies
+        run: |
+          sudo apt-get install texlive-full -y
+          sudo apt-get install openjdk-21-jdk -y
+          make dev-install
+      - name: Use TeX Live
+        run: |
+          make figures
+          make html
       - name: Upload static files as artifact
         id: deployment
         uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
