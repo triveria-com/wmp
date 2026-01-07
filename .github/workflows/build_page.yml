@@ -13,6 +13,7 @@ jobs:
       - name: TeX compilation
         uses: xu-cheng/texlive-action@v3
         with:
+          os: debian
           run: |
             make dev-install
             make figures
