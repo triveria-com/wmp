@@ -39,6 +39,7 @@ $(FIGSRC)/%.png: $(FIGSRC)/%.tex
 html:
 	make4ht -u -e make4ht.mk4 -d $(BUILDDIR)/html -a debug -f html5 $(SRCDIR)/main.tex
 	cat $(SRCDIR)/style.css >> $(BUILDDIR)/html/main.css
+	mv $(BUILDDIR)/html/main.html $(BUILDDIR)/html/index.html
 	rm main.*
 
 clean:
