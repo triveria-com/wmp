@@ -10,12 +10,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: texlive-full openjdk-21-jdk
+          version: 1.0
       - name: Install dependencies
         run: |
-          sudo apt-get install texlive-full -y
-          sudo apt-get install openjdk-21-jdk -y
           make dev-install
-      - name: Use TeX Live
+      - name: Build
         run: |
           make figures
           make html
@@ -31,6 +33,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      id-token: write
+      pages: write
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
